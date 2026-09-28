@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Synapse</title>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <main class="container">
+    <header>
+      <h1>Synapse</h1>
+      <p>Search your captured knowledge.</p>
+    </header>
+
+    <form id="search-form">
+      <input
+        id="search-input"
+        type="text"
+        placeholder="Search anything you've saved..."
+        autocomplete="off"
+        required
+      >
+
+      <button type="submit">Search</button>
+    </form>
+
+    <p id="status"></p>
+
+    <section id="results"></section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
