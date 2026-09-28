@@ -28,16 +28,33 @@ def root():
 
 @app.post("/pages")
 def create_page(page: PageCreate, db: Session = Depends(get_db)):
-    db_page = Page(
-        url=page.url,
-        title=page.title,
-        content=page.content,
-        embedding=generate_embedding(page.content),
+    db_page = (
+        db.query(Page)
+        .filter(Page.url == page.url)
+        .first()
     )
 
-    db.add(db_page)
-    db.commit()
-    db.refresh(db_page)
+    if db_page is None:
+        db_page = Page(
+            url=page.url,
+            title=page.title,
+            content=page.content,
+            embedding=generate_embedding(page.content),
+        )
+
+        db.add(db_page)
+        db.commit()
+        db.refresh(db_page)
+    else:
+        db_page.title = page.title
+        db_page.content = page.content
+        db_page.embedding = generate_embedding(page.content)
+
+        db.query(PageChunk).filter(
+            PageChunk.page_id == db_page.id
+        ).delete(synchronize_session=False)
+
+        db.commit()
 
     chunks = chunk_text(page.content)
 

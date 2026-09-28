@@ -13,10 +13,35 @@ saveButton.addEventListener("click", async () => {
     const [result] = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => {
+        const selectors = [
+          "article",
+          "main",
+          '[role="main"]',
+        ];
+
+        let content = "";
+
+        for (const selector of selectors) {
+          const element = document.querySelector(selector);
+
+          if (element) {
+            const text = element.innerText.trim();
+
+            if (text.length >= 200) {
+              content = text;
+              break;
+            }
+          }
+        }
+
+        if (!content) {
+          content = document.body.innerText.trim();
+        }
+
         return {
           url: window.location.href,
           title: document.title,
-          content: document.body.innerText,
+          content: content,
         };
       },
     });
