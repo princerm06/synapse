@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.page import PageCreate
 from app.models.page_db import Page
+from app.services.embeddings import generate_embedding
 
 app = FastAPI()
 
@@ -19,6 +20,7 @@ def create_page(page: PageCreate, db: Session = Depends(get_db)):
         url=page.url,
         title=page.title,
         content=page.content,
+        embedding=generate_embedding(page.content),
     )
 
     db.add(db_page)
