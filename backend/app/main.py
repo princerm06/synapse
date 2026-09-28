@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.page import PageCreate
 from app.models.page_db import Page
+from app.models.page_chunk_db import PageChunk
+from app.services.chunking import chunk_text
 from app.services.embeddings import generate_embedding
 
 
@@ -28,18 +30,38 @@ def create_page(page: PageCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_page)
 
-    return db_page
+    chunks = chunk_text(page.content)
+
+    for index, chunk in enumerate(chunks):
+        db_chunk = PageChunk(
+            page_id=db_page.id,
+            chunk_index=index,
+            content=chunk,
+            embedding=generate_embedding(chunk),
+        )
+        db.add(db_chunk)
+
+    db.commit()
+
+    return {
+        "id": db_page.id,
+        "url": db_page.url,
+        "title": db_page.title,
+        "content": db_page.content,
+        "created_at": db_page.created_at,
+        "chunks_created": len(chunks),
+    }
 
 
 @app.get("/search")
 def search_pages(query: str, db: Session = Depends(get_db)):
     query_embedding = generate_embedding(query)
 
-    distance = Page.embedding.cosine_distance(query_embedding)
+    distance = PageChunk.embedding.cosine_distance(query_embedding)
 
     results = (
-        db.query(Page, distance.label("distance"))
-        .filter(Page.embedding.is_not(None))
+        db.query(PageChunk, Page, distance.label("distance"))
+        .join(Page, PageChunk.page_id == Page.id)
         .order_by(distance)
         .limit(5)
         .all()
@@ -47,12 +69,14 @@ def search_pages(query: str, db: Session = Depends(get_db)):
 
     return [
         {
-            "id": page.id,
+            "page_id": page.id,
+            "chunk_id": chunk.id,
+            "chunk_index": chunk.chunk_index,
             "url": page.url,
             "title": page.title,
-            "content": page.content,
+            "content": chunk.content,
             "created_at": page.created_at,
             "similarity": 1 - float(distance_value),
         }
-        for page, distance_value in results
+        for chunk, page, distance_value in results
     ]
