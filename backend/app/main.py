@@ -8,6 +8,7 @@ from app.models.page_db import Page
 from app.models.page_chunk_db import PageChunk
 from app.services.chunking import chunk_text
 from app.services.embeddings import generate_embedding
+from app.services.retrieval import format_search_results
 
 
 app = FastAPI()
@@ -82,27 +83,21 @@ def create_page(page: PageCreate, db: Session = Depends(get_db)):
 @app.get("/search")
 def search_pages(query: str, db: Session = Depends(get_db)):
     query_embedding = generate_embedding(query)
-
     distance = PageChunk.embedding.cosine_distance(query_embedding)
 
-    results = (
+    # Fetch more chunk candidates than we display because several of the best
+    # chunks can belong to the same source page. format_search_results keeps only
+    # the strongest chunk from each page.
+    candidate_limit = 50
+    result_limit = 5
+
+    rows = (
         db.query(PageChunk, Page, distance.label("distance"))
         .join(Page, PageChunk.page_id == Page.id)
+        .filter(PageChunk.embedding.is_not(None))
         .order_by(distance)
-        .limit(5)
+        .limit(candidate_limit)
         .all()
     )
 
-    return [
-        {
-            "page_id": page.id,
-            "chunk_id": chunk.id,
-            "chunk_index": chunk.chunk_index,
-            "url": page.url,
-            "title": page.title,
-            "content": chunk.content,
-            "created_at": page.created_at,
-            "similarity": 1 - float(distance_value),
-        }
-        for chunk, page, distance_value in results
-    ]
+    return format_search_results(rows, limit=result_limit)
