@@ -45,12 +45,11 @@ searchForm.addEventListener("submit", async (event) => {
 
       const meta = document.createElement("div");
       meta.className = "result-meta";
-      meta.textContent =
-        `Similarity: ${result.similarity.toFixed(3)} · Chunk ${result.chunk_index}`;
+      meta.textContent = `Similarity: ${result.similarity.toFixed(3)}`;
 
       const content = document.createElement("p");
       content.className = "result-content";
-      content.textContent = result.content;
+      content.textContent = result.excerpt;
 
       const link = document.createElement("a");
       link.href = result.url;
