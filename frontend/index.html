@@ -12,25 +12,29 @@
 <body>
   <main class="container">
     <header>
-      <h1>Synapse</h1>
-      <p>Search your captured knowledge.</p>
+      <p class="eyebrow">YOUR SAVED KNOWLEDGE</p>
+      <h1>Find what you remember.</h1>
+      <p class="intro">
+        Search by idea, detail, or vague memory. Synapse will find the pages you saved.
+      </p>
     </header>
 
-    <form id="search-form">
+    <form id="search-form" role="search">
+      <label class="sr-only" for="search-input">Search saved knowledge</label>
       <input
         id="search-input"
-        type="text"
-        placeholder="Search anything you've saved..."
+        type="search"
+        placeholder="e.g. that article about cloud computing..."
         autocomplete="off"
         required
       >
 
-      <button type="submit">Search</button>
+      <button id="search-button" type="submit">Search</button>
     </form>
 
-    <p id="status"></p>
+    <p id="status" aria-live="polite"></p>
 
-    <section id="results"></section>
+    <section id="results" aria-label="Search results"></section>
   </main>
 
   <script src="app.js"></script>
