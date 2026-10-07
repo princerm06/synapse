@@ -29,4 +29,57 @@ jobs:
         run: python -m pip install pytest SQLAlchemy pgvector
 
       - name: Run backend unit tests
-        run: python -m pytest tests/test_chunking.py tests/test_retrieval.py tests/test_evaluation.py tests/test_reprocessing.py tests/test_config.py -v
+        run: python -m pytest tests/test_chunking.py tests/test_retrieval.py tests/test_evaluation.py tests/test_reprocessing.py tests/test_config.py tests/test_embeddings.py -v
+
+  container-smoke-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t synapse-backend ./backend
+
+      - name: Start backend container
+        run: |
+          docker run -d --name synapse-backend-smoke \
+            -p 8000:8000 \
+            -e DATABASE_URL=postgresql://synapse:synapse@127.0.0.1:5432/synapse \
+            -e APP_ENV=development \
+            synapse-backend
+
+      - name: Wait for health endpoint
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8000/health > /tmp/health.json; then
+              cat /tmp/health.json
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs synapse-backend-smoke
+          exit 1
+
+      - name: Verify health response
+        run: |
+          python - <<'PY'
+          import json
+
+          with open("/tmp/health.json") as response_file:
+              response = json.load(response_file)
+
+          assert response == {
+              "status": "ok",
+              "environment": "development",
+          }
+          PY
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs synapse-backend-smoke || true
+
+      - name: Stop smoke-test container
+        if: always()
+        run: docker rm -f synapse-backend-smoke || true
