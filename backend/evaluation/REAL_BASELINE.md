@@ -20,3 +20,15 @@ page-ID list before reporting Hit Rate@5, Recall@5, and MRR.
 It also refuses to run if expected page IDs are missing from the connected
 database. Do not put database credentials in this directory or in GitHub Actions.
 The live benchmark is intentionally local because CI has no Supabase secrets.
+
+## Legacy consistency repair
+
+The first baseline exposed pages 1-4 with zero chunk rows. Preserve that 0.800 / 0.800 / 0.800 result as the initial baseline. Before judging retrieval quality, rebuild only those legacy pages from their already-stored canonical content:
+
+```bash
+python -m evaluation.reprocess_pages 1 2 3 4
+python -m evaluation.reprocess_pages 1 2 3 4 --apply
+python -m evaluation.run_retrieval_benchmark
+```
+
+The first command is a dry run. The apply operation is transactional: it deletes/replaces chunks for the requested pages and commits only after all requested pages are rebuilt. The benchmark cases and labels must remain unchanged for the post-repair comparison.
