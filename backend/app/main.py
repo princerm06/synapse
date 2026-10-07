@@ -2,6 +2,7 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
 from app.models.page import PageCreate
 from app.models.page_db import Page
@@ -15,7 +16,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=False,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
@@ -25,6 +26,11 @@ app.add_middleware(
 @app.get("/")
 def root():
     return {"message": "Synapse backend is running"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "environment": settings.app_env}
 
 
 @app.post("/pages")
