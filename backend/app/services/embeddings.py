@@ -1,11 +1,18 @@
-from sentence_transformers import SentenceTransformer
+from functools import lru_cache
+from typing import Any
 
 
 MODEL_NAME = "all-MiniLM-L6-v2"
 
-model = SentenceTransformer(MODEL_NAME)
+
+@lru_cache(maxsize=1)
+def get_model() -> Any:
+    """Load the embedding model only when retrieval/ingestion first needs it."""
+    from sentence_transformers import SentenceTransformer
+
+    return SentenceTransformer(MODEL_NAME)
 
 
 def generate_embedding(text: str) -> list[float]:
-    embedding = model.encode(text)
+    embedding = get_model().encode(text)
     return embedding.tolist()
