@@ -9,15 +9,17 @@ def test_rebuild_page_chunks_deletes_old_chunks_and_adds_new_ones():
     query = db.query.return_value
     query.filter.return_value.delete.return_value = 2
     page = SimpleNamespace(id=42, content="First paragraph.\n\nSecond paragraph.")
+    embeddings = iter([[0.1] * 384, [0.2] * 384])
 
-    with (
-        patch("app.services.reprocessing.chunk_text", return_value=["first", "second"]),
-        patch(
-            "app.services.reprocessing.generate_embedding",
-            side_effect=[[0.1] * 384, [0.2] * 384],
-        ),
+    with patch(
+        "app.services.reprocessing.chunk_text",
+        return_value=["first", "second"],
     ):
-        count = rebuild_page_chunks(db, page)
+        count = rebuild_page_chunks(
+            db,
+            page,
+            embedder=lambda _text: next(embeddings),
+        )
 
     assert count == 2
     query.filter.return_value.delete.assert_called_once_with(
@@ -37,7 +39,7 @@ def test_rebuild_page_chunks_allows_empty_content_result():
     page = SimpleNamespace(id=7, content="")
 
     with patch("app.services.reprocessing.chunk_text", return_value=[]):
-        count = rebuild_page_chunks(db, page)
+        count = rebuild_page_chunks(db, page, embedder=lambda _text: [])
 
     assert count == 0
     query.filter.return_value.delete.assert_called_once_with(
